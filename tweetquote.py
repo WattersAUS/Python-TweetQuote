@@ -6,6 +6,7 @@ import base64
 import datetime
 import json
 import os
+from telnetlib import theNULL
 import requests
 import tweepy
 import yaml
@@ -41,13 +42,22 @@ import yaml
 def getCurrentDateTimeAsString():
     return datetime.datetime.now().strftime('%m/%d/%Y, %H:%M:%S')
 
+# general print for logging
+
+def printProgress(stage, extra):
+    message = '[ ' + getCurrentDateTimeAsString() + ' ]:' + os.path.basename(__file__) + ':' + stage
+    if extra != '':
+        message = message + ':' + extra
+    print(message)
+    return
+
 # should the api call crash and burn, die gracefully
 
 class APIResponseError(Exception):
     pass
 
 def api_error_response(response):
-    print('[ ' + getCurrentDateTimeAsString() + ' ] API Error [ ' + json.dumps(response.json()) + ' ] ' + os.path.basename(__file__))
+    printProgress('API error', json.dumps(response.json()))
     raise APIResponseError(response)
 
 # get a random quote but we need to be mindful we don't exceed the max length of a tweet
@@ -69,8 +79,7 @@ def getRandomQuote(apiUrl, apiToken):
 def main():
 
     try:
-        print('[ ' + getCurrentDateTimeAsString() + ' ] Starting ' + os.path.basename(__file__))
-
+        printProgress('Starting', '')
         with open('tweetquote.yaml', 'r') as ymlfile:
             cfg = yaml.full_load(ymlfile)
 
@@ -90,12 +99,12 @@ def main():
                 cfg['twitter_auth_keys']['access_token_secret']
                 )
 
-        print('[ ' + getCurrentDateTimeAsString() + ' ] Tweeting Quote ' + os.path.basename(__file__) + ' ' + json.dumps(json_string))
+        printProgress('Tweeting', json.dumps(json_string))
         api = tweepy.API(auth)
 
         status = api.update_status(status=tweet)
     finally:
-        print('[ ' + getCurrentDateTimeAsString() + ' ] Finishing ' + os.path.basename(__file__))
+        printProgress('Finishing', '')
 
 if __name__ == '__main__':
     main()
