@@ -1,0 +1,8 @@
+api:
+    url: <apiUrlGoesHere>
+    token: <apiBearerTokenGoesHere>
+twitter_auth_keys:
+    consumer_key : <TwitterConsumerKeyGoesHere>
+    consumer_secret : <TwitterConsumerSecretGoesHere>
+    access_token : <TwitterAccessTokenGoesHere>
+    access_token_secret : <TwitterAccessTokenSecretGoesHere>
