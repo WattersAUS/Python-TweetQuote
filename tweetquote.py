@@ -37,6 +37,8 @@ import yaml
 #        }
 #    }
 
+script_version = 1.01
+
 # get current dt and print
 
 def getCurrentDateTimeAsString():
@@ -45,7 +47,7 @@ def getCurrentDateTimeAsString():
 # general print for logging
 
 def printProgress(stage, extra):
-    message = '[ ' + getCurrentDateTimeAsString() + ' ]:' + os.path.basename(__file__) + ':' + stage
+    message = '[ ' + getCurrentDateTimeAsString() + ' ]:' + os.path.basename(__file__) + ':' + 'v{:.2f}'.format(script_version) + ':' + stage
     if extra != '':
         message = message + ':' + extra
     print(message)
