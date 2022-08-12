@@ -3,14 +3,17 @@
 Makes an API call to the service provided via these projects
 
     PHP-QuoteServiceOO
-    PHP-GeneralAccess
+    - API service that returns various responses containing quotes etc (also contains quotes.sql MySQL database that is used to store the quotes)
+    
+    PHP-GeneralAccess 
+    - Generic routines that are used in this project and others
 
-    Also uses the 'tweepy' twitter python module to do all the hard work with Twitter integration
+    Notes:
+    
+    Uses the 'tweepy' twitter python module to do all the hard work with Twitter integration
+
+    The user will also need to setup a Twitter API keys to allow the above project to send the Tweets (yaml config shows what bits it needs)
+
+--
 
 
--- sample logging eg
-
-[ 08/12/2022, 16:43:00 ]:tweetquote.py:v1.03:Starting
-[ 08/12/2022, 16:43:00 ]:tweetquote.py:v1.03:Image file:/home/pi/lib/images/image2.jpeg
-[ 08/12/2022, 16:43:00 ]:tweetquote.py:v1.03:Tweeting:{"version": "v1.16", "service": "GetRandomRestrictedLengthQuote", "generated": "2022-08-12 16:43:00", "author": {"id": 493, "name": "Nicolas Chamfort", "period": "", "added": "2018-04-12 13:09:47", "aliases": [], "quote": {"id": 1815, "text": "Contemplation often makes life miserable.  We should act more, think less, and stop watching ourselves live.", "used": 0, "added": "2018-04-12 13:09:50"}}}
-[ 08/12/2022, 16:43:00 ]:tweetquote.py:v1.03:Finishing
