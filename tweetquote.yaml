@@ -2,10 +2,18 @@ api:
     url: <apiUrlGoesHere>
     token: <apiBearerTokenGoesHere>
 images:
-    path: <path where image library is>
-    ext: <image file extension>
-    name: <name to use for tweet image name>
+    path: <path to place generated image>
+    prefix: <prefix image name>
     format: <image output format>
+    height: 512
+    width: 512
+    bgcolour: black
+    textcolour: white
+font:
+    family: <font to use>
+    size: <font size>
+    char_limit: <how many chars per line>
+    margin: <so we can not run up to the borders of the image>
 twitter:
     consumer_key : <TwitterConsumerKeyGoesHere>
     consumer_secret : <TwitterConsumerSecretGoesHere>

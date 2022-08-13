@@ -12,14 +12,14 @@ import tweepy
 import yaml
 import glob
 import random
+from textwrap import wrap
+import string
 
 # image libraries
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 # some constants
-SCRIPT_VERSION = 1.10
+SCRIPT_VERSION = 2.01
 
 CONFIG_ERROR = 100
 API_ERROR    = 200
@@ -92,13 +92,6 @@ def printProgress(stage, extra):
     print(message)
     return
 
-# get list of image files we could use and return a random item
-def getRandomFile(path):
-    fileList = glob.glob(path)
-    if len(fileList) == 0:
-        raise GeneralError(IMAGE_ERROR, 'Failed to find images to use!')
-    return random.choice(fileList)
-
 # do we have a JSON str
 def isJSON(str):
     try:
@@ -125,34 +118,96 @@ def getRandomQuote(apiUrl, apiToken):
             raise GeneralError(response.status_code, 'API crashed and burned!')
     return response.json()
 
+# get positions for each line of the quote 
+def get_y_and_heights(text_wrapped, dimensions, margin, font):
+    """Get the first vertical coordinate at which to draw text and the height of each line of text"""
+    # https://stackoverflow.com/a/46220683/9263761
+    ascent, descent = font.getmetrics()
+    # Calculate the height needed to draw each line of text (including its bottom margin)
+    line_heights = [
+        font.getmask(text_line).getbbox()[3] + descent + margin
+        for text_line in text_wrapped
+    ]
+    # The last line doesn't have a bottom margin
+    line_heights[-1] -= margin
+    # Total height needed
+    height_text = sum(line_heights)
+    # Calculate the Y coordinate at which to draw the first line of text
+    y = (dimensions[1] - height_text) // 2
+    # Return the first Y coordinate and a list with the height of each line
+    return (y, line_heights)
+
+def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
+    font = ImageFont.truetype(fonts_cfg['family'], fonts_cfg['size'])
+    ascent, descent = font.getmetrics()
+
+    # author text dimenions used to position the 'author' at the bottom right of the image
+    author_width = font.getmask(author).getbbox()[2]
+    author_height = font.getmask(author).getbbox()[3] + descent
+
+    # build the image
+    image = Image.new("RGB", (images_cfg['width'], images_cfg['height']), color=images_cfg['bgcolour'])
+    draw = ImageDraw.Draw(image)
+    # place the author
+    draw.text((images_cfg['width'] - fonts_cfg['margin'] - author_width, images_cfg['height'] - fonts_cfg['margin'] - author_height), author, fill=(0, 0, 0), font=font)
+
+    # if the quote will span multiple lines we'll need to split it into an array
+    quote_lines = wrap(quote, fonts_cfg['char_limit'])
+
+    # Get the first vertical coordinate at which to draw text and the height of each line of text
+    y, line_heights = get_y_and_heights(
+        quote_lines,
+        (images_cfg['width'], images_cfg['height'] - ((fonts_cfg['margin'] * 2) + author_height)),
+        fonts_cfg['margin'],
+        font
+    )
+
+    # Draw each line of the quote
+    for i, line in enumerate(quote_lines):
+        # Calculate the horizontally-centered position at which to draw this line
+        line_width = font.getmask(line).getbbox()[2]
+        x = ((images_cfg['width'] - line_width) // 2)
+        # Draw this line
+        draw.text((x, y), line, font=font, fill=(0, 0, 0))
+        # Move on to the height at which the next line should be drawn at
+        y += line_heights[i]
+
+    return image
+
+def tweetQuoteImage(twitter_cfg, author, image):
+    auth = tweepy.OAuthHandler(
+        twitter_cfg['consumer_key'],
+        twitter_cfg['consumer_secret']
+    )
+    auth.set_access_token(
+        twitter_cfg['access_token'],
+        twitter_cfg['access_token_secret']
+    )
+    api = tweepy.API(auth)
+    author = author.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
+    media = api.media_upload(image)
+    tweet = "Words of wisdom. #" + author
+    post_result = api.update_status(status=tweet, media_ids=[media.media_id])
+    return
+
 def main():
     try:
-        printProgress('Loading configuration', '')
+        printProgress('Starting up', '')
         with open('tweetquote.yaml', 'r') as ymlfile:
             cfg = yaml.full_load(ymlfile)
 
         checkMandatoryConfigurationExists(cfg['api'], ['url', 'token'], 'Quote API details missing:')
         checkMandatoryConfigurationExists(cfg['twitter'], ['consumer_key', 'consumer_secret', 'access_token', 'access_token_secret'], 'Twitter API auth details missing:')
-        checkMandatoryConfigurationExists(cfg['images'], ['path', 'ext', 'name', 'format'], 'Image configuration missing:')
+        checkMandatoryConfigurationExists(cfg['images'], ['path', 'prefix', 'format', 'height', 'width', 'bgcolour', 'textcolour'], 'Image configuration missing:')
+        checkMandatoryConfigurationExists(cfg['font'], ['family', 'size', 'char_limit', 'margin'], 'Font configuration missing:')
 
-        # get a quote
-        json_string = getRandomQuote(cfg['api']['url'], cfg['api']['token'])
-
-        tweet =  '\'' + json_string['author']['quote']['text'] + '\'\n\n' + json_string['author']['name']
-
-        # go and tweet!
-        auth = tweepy.OAuthHandler(
-                cfg['twitter']['consumer_key'],
-                cfg['twitter']['consumer_secret']
-                )
-        auth.set_access_token(
-                cfg['twitter']['access_token'],
-                cfg['twitter']['access_token_secret']
-                )
-
-        printProgress('Tweeting', json.dumps(json_string))
-        api = tweepy.API(auth)
-        status = api.update_status(status=tweet)
+        quote = getRandomQuote(cfg['api']['url'], cfg['api']['token'])
+        printProgress('Quote retrieved', json.dumps(quote))
+        image = buildQuoteImage(cfg['images'], cfg['font'], quote['author']['quote']['text'], quote['author']['name'])
+        new_image_name = cfg['images']['path'] + '/' + cfg['images']['prefix'] + 'generatedimage'
+        image.save(new_image_name, 'png')
+        printProgress('Tweeting words of wisdom!', '')
+        tweetQuoteImage(cfg['twitter'], quote['author']['name'], new_image_name)
         printProgress('Finishing', '')
     except GeneralError as e:
         print()
