@@ -1,7 +1,7 @@
 
 -- sample logging eg
 
-[ 08/12/2022, 16:43:00 ]:tweetquote.py:v1.03:Starting
-[ 08/12/2022, 16:43:00 ]:tweetquote.py:v1.03:Image file:/home/pi/lib/images/image2.jpeg
-[ 08/12/2022, 16:43:00 ]:tweetquote.py:v1.03:Tweeting:{"version": "v1.16", "service": "GetRandomRestrictedLengthQuote", "generated": "2022-08-12 16:43:00", "author": {"id": 493, "name": "Nicolas Chamfort", "period": "", "added": "2018-04-12 13:09:47", "aliases": [], "quote": {"id": 1815, "text": "Contemplation often makes life miserable.  We should act more, think less, and stop watching ourselves live.", "used": 0, "added": "2018-04-12 13:09:50"}}}
-[ 08/12/2022, 16:43:00 ]:tweetquote.py:v1.03:Finishing
+[ 08/13/2022, 16:08:11 ]:tweetquote.py:v2.01:Starting up
+[ 08/13/2022, 16:08:11 ]:tweetquote.py:v2.01:Quote retrieved:{"version": "v1.16", "service": "GetRandomRestrictedLengthQuote", "generated": "2022-08-13 16:08:11", "author": {"id": 212, "name": "Confucius", "period": "", "added": "2017-10-10 15:23:47", "aliases": [], "quote": {"id": 4502, "text": "It doesn't matter how slow you go, as long as you don't stop.", "used": 0, "added": "2019-12-24 09:47:06"}}}
+[ 08/13/2022, 16:08:12 ]:tweetquote.py:v2.01:Tweeting words of wisdom!
+[ 08/13/2022, 16:08:13 ]:tweetquote.py:v2.01:Finishing
