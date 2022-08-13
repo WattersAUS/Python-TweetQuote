@@ -2,8 +2,11 @@ api:
     url: <apiUrlGoesHere>
     token: <apiBearerTokenGoesHere>
 images:
-    path: <path goes here>
-twitter_auth_keys:
+    path: <path where image library is>
+    ext: <image file extension>
+    name: <name to use for tweet image name>
+    format: <image output format>
+twitter:
     consumer_key : <TwitterConsumerKeyGoesHere>
     consumer_secret : <TwitterConsumerSecretGoesHere>
     access_token : <TwitterAccessTokenGoesHere>

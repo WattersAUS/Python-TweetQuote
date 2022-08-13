@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-# Authorization data
-
+from ast import Raise
 import base64
+from curses.has_key import has_key
 import datetime
 import json
 import os
@@ -12,6 +12,18 @@ import tweepy
 import yaml
 import glob
 import random
+
+# image libraries
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+
+# some constants
+SCRIPT_VERSION = 1.10
+
+CONFIG_ERROR = 100
+API_ERROR    = 200
+IMAGE_ERROR  = 300
 
 #
 # sample response from service
@@ -39,7 +51,6 @@ import random
 #        }
 #    }
 
-script_version = 1.03
 
 class GeneralError(Exception):
     """Exception raised for catching various problems.
@@ -56,13 +67,26 @@ class GeneralError(Exception):
     def __str__(self):
         return f'{self.code} -> {self.message}'
 
+def checkMandatoryConfigurationExists(cfg, mandatory_keys, error_message):
+    missing_keys = []
+    for item in mandatory_keys:
+        if item not in cfg:
+            missing_keys.append(item)
+    # missing any and we want to kill the script
+    if len(missing_keys) > 0:
+        message = error_message
+        for item in missing_keys:
+            message += ' ' + item
+        raise GeneralError(CONFIG_ERROR, message + '!')
+    return
+
 # get current dt and print
 def getCurrentDateTimeAsString():
     return datetime.datetime.now().strftime('%m/%d/%Y, %H:%M:%S')
 
 # general print for logging
 def printProgress(stage, extra):
-    message = '[ ' + getCurrentDateTimeAsString() + ' ]:' + os.path.basename(__file__) + ':' + 'v{:.2f}'.format(script_version) + ':' + stage
+    message = '[ ' + getCurrentDateTimeAsString() + ' ]:' + os.path.basename(__file__) + ':' + 'v{:.2f}'.format(SCRIPT_VERSION) + ':' + stage
     if extra != '':
         message = message + ':' + extra
     print(message)
@@ -72,7 +96,7 @@ def printProgress(stage, extra):
 def getRandomFile(path):
     fileList = glob.glob(path)
     if len(fileList) == 0:
-        raise GeneralError(0, "Failed to find images to use!")
+        raise GeneralError(IMAGE_ERROR, 'Failed to find images to use!')
     return random.choice(fileList)
 
 # do we have a JSON str
@@ -98,40 +122,43 @@ def getRandomQuote(apiUrl, apiToken):
             json_string = response.json()
             raise GeneralError(json_string['code'], json_string['message'])
         else:
-            raise GeneralError(response.status_code, "API crashed and burned!")
+            raise GeneralError(response.status_code, 'API crashed and burned!')
     return response.json()
 
 def main():
     try:
-        printProgress('Starting', '')
+        printProgress('Loading configuration', '')
         with open('tweetquote.yaml', 'r') as ymlfile:
             cfg = yaml.full_load(ymlfile)
 
-        # from the repo of images get a random one (we may not use this yet)
-        image_file = getRandomFile(cfg['images']['path'])
-        printProgress('Image file', image_file)
+        checkMandatoryConfigurationExists(cfg['api'], ['url', 'token'], 'Quote API details missing:')
+        checkMandatoryConfigurationExists(cfg['twitter'], ['consumer_key', 'consumer_secret', 'access_token', 'access_token_secret'], 'Twitter API auth details missing:')
+        checkMandatoryConfigurationExists(cfg['images'], ['path', 'ext', 'name', 'format'], 'Image configuration missing:')
 
-        # get the quote 
+        # get a quote
         json_string = getRandomQuote(cfg['api']['url'], cfg['api']['token'])
+
         tweet =  '\'' + json_string['author']['quote']['text'] + '\'\n\n' + json_string['author']['name']
 
         # go and tweet!
         auth = tweepy.OAuthHandler(
-                cfg['twitter_auth_keys']['consumer_key'],
-                cfg['twitter_auth_keys']['consumer_secret']
+                cfg['twitter']['consumer_key'],
+                cfg['twitter']['consumer_secret']
                 )
         auth.set_access_token(
-                cfg['twitter_auth_keys']['access_token'],
-                cfg['twitter_auth_keys']['access_token_secret']
+                cfg['twitter']['access_token'],
+                cfg['twitter']['access_token_secret']
                 )
 
         printProgress('Tweeting', json.dumps(json_string))
-#        api = tweepy.API(auth)
-#        status = api.update_status(status=tweet)
-    except GeneralError:
-        print()
-    finally:
+        api = tweepy.API(auth)
+        status = api.update_status(status=tweet)
         printProgress('Finishing', '')
+    except GeneralError as e:
+        print()
+        print('ErrorCode: (' + str(e.code) + '), ErrorMessage: ' + e.message)
+    finally:
+        print()
 
 if __name__ == '__main__':
     main()
