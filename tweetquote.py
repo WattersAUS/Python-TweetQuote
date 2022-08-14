@@ -19,7 +19,7 @@ import string
 from PIL import Image, ImageDraw, ImageFont
 
 # some constants
-SCRIPT_VERSION = 2.01
+SCRIPT_VERSION = 2.02
 
 CONFIG_ERROR = 100
 API_ERROR    = 200
@@ -78,6 +78,13 @@ def checkMandatoryConfigurationExists(cfg, mandatory_keys, error_message):
         for item in missing_keys:
             message += ' ' + item
         raise GeneralError(CONFIG_ERROR, message + '!')
+    return
+
+def validateConfiguration(cfg):
+    checkMandatoryConfigurationExists(cfg['api'], ['url', 'token'], 'Quote API details missing:')
+    checkMandatoryConfigurationExists(cfg['twitter'], ['consumer_key', 'consumer_secret', 'access_token', 'access_token_secret'], 'Twitter API auth details missing:')
+    checkMandatoryConfigurationExists(cfg['images'], ['path', 'prefix', 'format', 'height', 'width', 'bgcolour', 'textcolour'], 'Image configuration missing:')
+    checkMandatoryConfigurationExists(cfg['font'], ['family', 'size', 'char_limit', 'margin'], 'Font configuration missing:')
     return
 
 # get current dt and print
@@ -172,6 +179,11 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
         # Move on to the height at which the next line should be drawn at
         y += line_heights[i]
 
+    # add a fancy double line border around the edge of the image
+    draw.line([(5, 5), (images_cfg['width'] - 5, 5)], fill ="black", width = 2)
+    draw.line([(images_cfg['width'] - 5, 5), (images_cfg['width'] - 5, images_cfg['height'] - 5)], fill ="black", width = 2)
+    draw.line([(images_cfg['width'] - 5, images_cfg['height'] -5), (5, images_cfg['height'] - 5)], fill ="black", width = 2)
+    draw.line([5, (images_cfg['height'] - 5), (5, 5)], fill ="black", width = 2)
     return image
 
 def tweetQuoteImage(twitter_cfg, author, image):
@@ -196,11 +208,7 @@ def main():
         with open('tweetquote.yaml', 'r') as ymlfile:
             cfg = yaml.full_load(ymlfile)
 
-        checkMandatoryConfigurationExists(cfg['api'], ['url', 'token'], 'Quote API details missing:')
-        checkMandatoryConfigurationExists(cfg['twitter'], ['consumer_key', 'consumer_secret', 'access_token', 'access_token_secret'], 'Twitter API auth details missing:')
-        checkMandatoryConfigurationExists(cfg['images'], ['path', 'prefix', 'format', 'height', 'width', 'bgcolour', 'textcolour'], 'Image configuration missing:')
-        checkMandatoryConfigurationExists(cfg['font'], ['family', 'size', 'char_limit', 'margin'], 'Font configuration missing:')
-
+        validateConfiguration(cfg)
         quote = getRandomQuote(cfg['api']['url'], cfg['api']['token'])
         printProgress('Quote retrieved', json.dumps(quote))
         image = buildQuoteImage(cfg['images'], cfg['font'], quote['author']['quote']['text'], quote['author']['name'])
