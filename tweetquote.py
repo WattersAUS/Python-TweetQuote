@@ -19,7 +19,7 @@ import string
 from PIL import Image, ImageDraw, ImageFont
 
 # some constants
-SCRIPT_VERSION = 2.02
+SCRIPT_VERSION = 2.03
 
 CONFIG_ERROR = 100
 API_ERROR    = 200
@@ -179,11 +179,18 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
         # Move on to the height at which the next line should be drawn at
         y += line_heights[i]
 
-    # add a fancy double line border around the edge of the image
-    draw.line([(5, 5), (images_cfg['width'] - 5, 5)], fill ="black", width = 2)
-    draw.line([(images_cfg['width'] - 5, 5), (images_cfg['width'] - 5, images_cfg['height'] - 5)], fill ="black", width = 2)
-    draw.line([(images_cfg['width'] - 5, images_cfg['height'] -5), (5, images_cfg['height'] - 5)], fill ="black", width = 2)
-    draw.line([5, (images_cfg['height'] - 5), (5, 5)], fill ="black", width = 2)
+    # add a fancy border around the edge of the image
+    draw.line([(20, 5), (images_cfg['width'] - 20, 5)], fill ="black", width = 4)
+    draw.line([(images_cfg['width'] - 20, 5),(images_cfg['width'] - 5, 20)], fill ="black", width = 4)
+
+    draw.line([(images_cfg['width'] - 5, 20), (images_cfg['width'] - 5, images_cfg['height'] - 20)], fill ="black", width = 4)
+    draw.line([(images_cfg['width'] - 5, images_cfg['height'] - 20), (images_cfg['width'] - 20, images_cfg['height'] - 5)], fill ="black", width = 4)
+
+    draw.line([(images_cfg['width'] - 20, images_cfg['height'] - 5), (20, images_cfg['height'] - 5)], fill ="black", width = 4)
+    draw.line([(20, images_cfg['height'] - 5), 5, (images_cfg['height'] - 20)], fill ="black", width = 4)
+    
+    draw.line([5, (images_cfg['height'] - 20), (5, 20)], fill ="black", width = 4)
+    draw.line([(5, 20), (20, 5)], fill ="black", width = 4)
     return image
 
 def tweetQuoteImage(twitter_cfg, author, image):
