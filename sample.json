@@ -1,0 +1,24 @@
+{
+    "version": "v1.16",
+    "service": "GetRandomRestrictedLengthQuote",
+    "generated": "2022-08-16 16:07:30",
+    "author": {
+        "id": 470,
+        "name": "Walt Kelly",
+        "period": "",
+        "added": "2018-03-14 11:25:40",
+        "aliases": [
+            {
+                "id": 225,
+                "name": "Walter Crawford Kelly, Jr.",
+                "added": "2020-04-06 10:44:03"
+            }
+        ],
+        "quote": {
+            "id": 1578,
+            "text": "We have met the enemy and he is us.",
+            "used": 0,
+            "added": "2018-03-14 11:25:40"
+        }
+    }
+}

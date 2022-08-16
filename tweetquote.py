@@ -25,33 +25,6 @@ CONFIG_ERROR = 100
 API_ERROR    = 200
 IMAGE_ERROR  = 300
 
-#
-# sample response from service
-#
-#    {
-#        'version': 'v1.13',
-#        'service': 'GetRandomAuthorWithQuote',
-#        'generated': '2021-07-19 20:29:45',
-#        'author': {
-#            'id': 3,
-#            'name': 'Dag Hammarskjold',
-#            'period': '',
-#            'added': '2017-08-10 13:14:10',
-#            'aliases': [{
-#                'id': 23,
-#                'name': 'Dag Hjalmar Agne Carl Hammarskjold',
-#                'added': '2018-08-28 11:48:42'
-#            }],
-#            'quote': {
-#                'id': 2813,
-#                'text': 'Never look down to test the ground before taking your next step; only he who keeps his eye fixed on the far horizon will find the right road.',
-#                'used': 0,
-#                'added': '2018-08-28 11:49:02'
-#            }
-#        }
-#    }
-
-
 class GeneralError(Exception):
     """Exception raised for catching various problems.
 
