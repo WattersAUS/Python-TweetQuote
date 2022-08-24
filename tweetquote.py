@@ -19,11 +19,12 @@ import string
 from PIL import Image, ImageDraw, ImageFont
 
 # some constants
-SCRIPT_VERSION = 2.03
+SCRIPT_VERSION = 2.10
 
 CONFIG_ERROR = 100
 API_ERROR    = 200
 IMAGE_ERROR  = 300
+RENDER_ERROR = 400
 
 class GeneralError(Exception):
     """Exception raised for catching various problems.
@@ -98,7 +99,7 @@ def getRandomQuote(apiUrl, apiToken):
             raise GeneralError(response.status_code, 'API crashed and burned!')
     return response.json()
 
-# get positions for each line of the quote 
+# get positions for the start of the first line and all the heights for subsequent lines 
 def get_y_and_heights(text_wrapped, dimensions, margin, font):
     """Get the first vertical coordinate at which to draw text and the height of each line of text"""
     # https://stackoverflow.com/a/46220683/9263761
@@ -128,19 +129,30 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
     # build the image
     image = Image.new("RGB", (images_cfg['width'], images_cfg['height']), color=images_cfg['bgcolour'])
     draw = ImageDraw.Draw(image)
+
     # place the author
     draw.text((images_cfg['width'] - fonts_cfg['margin'] - author_width, images_cfg['height'] - fonts_cfg['margin'] - author_height), author, fill=(0, 0, 0), font=font)
 
-    # if the quote will span multiple lines we'll need to split it into an array
-    quote_lines = wrap(quote, fonts_cfg['char_limit'])
+    # repeatedly try to fit the quote onto the image, if the first line is under the top margin reduce the font size and try again
+    fontsize = fonts_cfg['size']
+    charlimit = fonts_cfg['char_limit']
 
-    # Get the first vertical coordinate at which to draw text and the height of each line of text
-    y, line_heights = get_y_and_heights(
-        quote_lines,
-        (images_cfg['width'], images_cfg['height'] - ((fonts_cfg['margin'] * 2) + author_height)),
-        fonts_cfg['margin'],
-        font
-    )
+    while True:
+        quote_lines = wrap(quote, charlimit)
+        font = ImageFont.truetype(fonts_cfg['family'], fontsize)
+        y, line_heights = get_y_and_heights(
+            quote_lines,
+            (images_cfg['width'], images_cfg['height'] - ((fonts_cfg['margin'] * 2) + author_height)),
+            fonts_cfg['margin'],
+            font
+        )
+        if y > fonts_cfg['margin']:
+            break
+        fontsize -= 2
+        if fontsize < 1:
+            raise GeneralError(RENDER_ERROR, 'Unable to render quote as fontsize is illegal (< 1)!')
+        charlimit += 4
+        printProgress('Quote starts within margin (' + str(fonts_cfg['margin']) + ' / ' + str(y) + '), using smaller font (' + str(fontsize) + ') with character limit (' + str(charlimit) + '), trying again!', '')
 
     # Draw each line of the quote
     for i, line in enumerate(quote_lines):
@@ -155,13 +167,10 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
     # add a fancy border around the edge of the image
     draw.line([(20, 5), (images_cfg['width'] - 20, 5)], fill ="black", width = 4)
     draw.line([(images_cfg['width'] - 20, 5),(images_cfg['width'] - 5, 20)], fill ="black", width = 4)
-
     draw.line([(images_cfg['width'] - 5, 20), (images_cfg['width'] - 5, images_cfg['height'] - 20)], fill ="black", width = 4)
     draw.line([(images_cfg['width'] - 5, images_cfg['height'] - 20), (images_cfg['width'] - 20, images_cfg['height'] - 5)], fill ="black", width = 4)
-
     draw.line([(images_cfg['width'] - 20, images_cfg['height'] - 5), (20, images_cfg['height'] - 5)], fill ="black", width = 4)
     draw.line([(20, images_cfg['height'] - 5), 5, (images_cfg['height'] - 20)], fill ="black", width = 4)
-    
     draw.line([5, (images_cfg['height'] - 20), (5, 20)], fill ="black", width = 4)
     draw.line([(5, 20), (20, 5)], fill ="black", width = 4)
     return image
