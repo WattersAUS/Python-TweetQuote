@@ -7,7 +7,11 @@ images:
     format: <image output format>
     height: 512
     width: 512
-    bgcolour: black
+    bgcolour:
+        - black
+        - blue
+        - green
+        - rgb(191,191,191)
     textcolour: white
 font:
     family: <font to use>

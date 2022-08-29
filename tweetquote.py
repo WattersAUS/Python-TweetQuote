@@ -19,7 +19,7 @@ import string
 from PIL import Image, ImageDraw, ImageFont
 
 # some constants
-SCRIPT_VERSION = 2.10
+SCRIPT_VERSION = 2.12
 
 CONFIG_ERROR = 100
 API_ERROR    = 200
@@ -118,6 +118,25 @@ def get_y_and_heights(text_wrapped, dimensions, margin, font):
     # Return the first Y coordinate and a list with the height of each line
     return (y, line_heights)
 
+# we should have an array of possible bgcolours to use, if not default to white
+def selectBackgroundColour(images_cfg):
+    bgcolour = "white"
+    if len(images_cfg['bgcolour']) > 0:
+        bgcolour = random.choice(images_cfg['bgcolour'])
+        printProgress('Found ' + str(len(images_cfg['bgcolour'])) + ' background colours to choose from, selected ' + bgcolour + '!', '')
+    return bgcolour
+
+def drawImageBorder(draw, images_cfg, margin, ident, border):
+    draw.line([(ident, margin), (images_cfg['width'] - ident, margin)], fill ="black", width = border)
+    draw.line([(images_cfg['width'] - ident, margin),(images_cfg['width'] - margin, ident)], fill ="black", width = border)
+    draw.line([(images_cfg['width'] - margin, ident), (images_cfg['width'] - margin, images_cfg['height'] - ident)], fill ="black", width = border)
+    draw.line([(images_cfg['width'] - margin, images_cfg['height'] - ident), (images_cfg['width'] - ident, images_cfg['height'] - margin)], fill ="black", width = border)
+    draw.line([(images_cfg['width'] - ident, images_cfg['height'] - margin), (ident, images_cfg['height'] - margin)], fill ="black", width = border)
+    draw.line([(ident, images_cfg['height'] - margin), margin, (images_cfg['height'] - ident)], fill ="black", width = border)
+    draw.line([margin, (images_cfg['height'] - ident), (margin, ident)], fill ="black", width = border)
+    draw.line([(margin, ident), (ident, margin)], fill ="black", width = border)
+    return
+
 def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
     font = ImageFont.truetype(fonts_cfg['family'], fonts_cfg['size'])
     ascent, descent = font.getmetrics()
@@ -127,7 +146,7 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
     author_height = font.getmask(author).getbbox()[3] + descent
 
     # build the image
-    image = Image.new("RGB", (images_cfg['width'], images_cfg['height']), color=images_cfg['bgcolour'])
+    image = Image.new("RGB", (images_cfg['width'], images_cfg['height']), color=selectBackgroundColour(images_cfg))
     draw = ImageDraw.Draw(image)
 
     # place the author
@@ -165,14 +184,7 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
         y += line_heights[i]
 
     # add a fancy border around the edge of the image
-    draw.line([(20, 5), (images_cfg['width'] - 20, 5)], fill ="black", width = 4)
-    draw.line([(images_cfg['width'] - 20, 5),(images_cfg['width'] - 5, 20)], fill ="black", width = 4)
-    draw.line([(images_cfg['width'] - 5, 20), (images_cfg['width'] - 5, images_cfg['height'] - 20)], fill ="black", width = 4)
-    draw.line([(images_cfg['width'] - 5, images_cfg['height'] - 20), (images_cfg['width'] - 20, images_cfg['height'] - 5)], fill ="black", width = 4)
-    draw.line([(images_cfg['width'] - 20, images_cfg['height'] - 5), (20, images_cfg['height'] - 5)], fill ="black", width = 4)
-    draw.line([(20, images_cfg['height'] - 5), 5, (images_cfg['height'] - 20)], fill ="black", width = 4)
-    draw.line([5, (images_cfg['height'] - 20), (5, 20)], fill ="black", width = 4)
-    draw.line([(5, 20), (20, 5)], fill ="black", width = 4)
+    drawImageBorder(draw, images_cfg, 5, 20, 4)
     return image
 
 def tweetQuoteImage(twitter_cfg, author, image):
