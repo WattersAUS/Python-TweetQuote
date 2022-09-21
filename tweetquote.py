@@ -19,7 +19,7 @@ import string
 from PIL import Image, ImageDraw, ImageFont
 
 # some constants
-SCRIPT_VERSION = 2.12
+SCRIPT_VERSION = 2.13
 
 CONFIG_ERROR = 100
 API_ERROR    = 200
@@ -184,7 +184,8 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
         y += line_heights[i]
 
     # add a fancy border around the edge of the image
-    drawImageBorder(draw, images_cfg, 5, 20, 4)
+    drawImageBorder(draw, images_cfg, 5, 20, 3)
+    drawImageBorder(draw, images_cfg, 10, 20, 3)
     return image
 
 def tweetQuoteImage(twitter_cfg, author, image):
