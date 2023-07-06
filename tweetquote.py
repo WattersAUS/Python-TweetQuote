@@ -19,7 +19,7 @@ import string
 from PIL import Image, ImageDraw, ImageFont
 
 # some constants
-SCRIPT_VERSION = 2.13
+SCRIPT_VERSION = 3.01
 
 CONFIG_ERROR = 100
 API_ERROR    = 200
@@ -188,7 +188,7 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
     drawImageBorder(draw, images_cfg, 10, 20, 3)
     return image
 
-def tweetQuoteImage(twitter_cfg, author, image):
+def setAuthAccess(twitter_cfg):
     auth = tweepy.OAuthHandler(
         twitter_cfg['consumer_key'],
         twitter_cfg['consumer_secret']
@@ -197,11 +197,33 @@ def tweetQuoteImage(twitter_cfg, author, image):
         twitter_cfg['access_token'],
         twitter_cfg['access_token_secret']
     )
+    return auth
+
+def uploadImageToTwitter(auth, image):
     api = tweepy.API(auth)
-    author = author.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
     media = api.media_upload(image)
+    return media
+
+def setClientAcces(twitter_cfg):
+    client = tweepy.Client(
+        consumer_key = twitter_cfg['consumer_key'],
+        consumer_secret = twitter_cfg['consumer_secret'],
+        access_token = twitter_cfg['access_token'],
+        access_token_secret = twitter_cfg['access_token_secret']
+    )
+    return client
+
+def tweetMessage(client, author, media):
+    author = author.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
     tweet = "Words of wisdom. #" + author
-    post_result = api.update_status(status=tweet, media_ids=[media.media_id])
+    client.create_tweet(text=tweet, media_ids=[media.media_id])
+    return
+
+def tweetQuoteImage(twitter_cfg, author, image):
+    auth = setAuthAccess(twitter_cfg)
+    media = uploadImageToTwitter(auth, image)
+    client = setClientAcces(twitter_cfg)
+    tweetMessage(client, author, media)    
     return
 
 def main():
