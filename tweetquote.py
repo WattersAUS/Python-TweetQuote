@@ -19,7 +19,7 @@ import string
 from PIL import Image, ImageDraw, ImageFont
 
 # some constants
-SCRIPT_VERSION = 3.02
+SCRIPT_VERSION = 3.03
 
 CONFIG_ERROR = 100
 API_ERROR    = 200
@@ -236,11 +236,11 @@ def main():
         image.save(new_image_name, 'png')
         printProgress('Setting Twitter v1 API Authentication object!', '')
         auth = setAuthAccess(cfg['twitter'])
-        printProgress('Uploading image with embedded quote!', new_image_name)
+        printProgress('Using Twitter v1 API to upload image with embedded quote!', new_image_name)
         media = uploadImageToTwitter(auth, new_image_name)
         printProgress('Setting Twitter v2 API Authenication object!', '')
         client = setClientAcces(cfg['twitter'])
-        printProgress('Tweeting words of wisdom!', '')
+        printProgress('Using Twitter v2 API to tweet words of wisdom!', '')
         tweetMessage(client, quote['author']['name'], media)    
         printProgress('Finishing', '')
     except GeneralError as e:
