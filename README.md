@@ -2,6 +2,7 @@
 
 Update Log
 
+    v3.03 - Small change to logging messages
     v3.02 - Small refactor
     v3.01 - Updated to use the Twitter API v2 for tweeting but v1 for image upload (you need to do this when you use the Free Twitter option)
     v2.13 - Original version using Twitter API v1
