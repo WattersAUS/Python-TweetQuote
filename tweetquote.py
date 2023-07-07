@@ -219,9 +219,6 @@ def tweetMessage(client, author, media):
     client.create_tweet(text=tweet, media_ids=[media.media_id])
     return
 
-def tweetQuoteImage(twitter_cfg, author, image):
-    return
-
 def main():
     try:
         printProgress('Starting up', '')
