@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 
+import sys
 from ast import Raise
 import base64
 from curses.has_key import has_key
 import datetime
 import json
 import os
-from telnetlib import theNULL
 import requests
 import tweepy
 import yaml
@@ -19,7 +19,7 @@ import string
 from PIL import Image, ImageDraw, ImageFont
 
 # some constants
-SCRIPT_VERSION = 3.03
+SCRIPT_VERSION = 3.11
 
 CONFIG_ERROR = 100
 API_ERROR    = 200
@@ -57,8 +57,9 @@ def checkMandatoryConfigurationExists(cfg, mandatory_keys, error_message):
 def validateConfiguration(cfg):
     checkMandatoryConfigurationExists(cfg['api'], ['url', 'token'], 'Quote API details missing:')
     checkMandatoryConfigurationExists(cfg['twitter'], ['consumer_key', 'consumer_secret', 'access_token', 'access_token_secret'], 'Twitter API auth details missing:')
-    checkMandatoryConfigurationExists(cfg['images'], ['path', 'prefix', 'format', 'height', 'width', 'bgcolour', 'textcolour'], 'Image configuration missing:')
-    checkMandatoryConfigurationExists(cfg['font'], ['family', 'size', 'char_limit', 'margin'], 'Font configuration missing:')
+    checkMandatoryConfigurationExists(cfg['images']['generated'], ['path', 'prefix', 'format', 'height', 'width', 'bgcolour'], 'Image generation configuration missing:')
+    checkMandatoryConfigurationExists(cfg['images']['library'], ['path', 'prefix'], 'Image library configuration missing:')
+    checkMandatoryConfigurationExists(cfg['font'], ['family', 'size', 'textcolour', 'char_limit', 'margin'], 'Font configuration missing:')
     return
 
 # get current dt and print
@@ -126,33 +127,41 @@ def selectBackgroundColour(images_cfg):
         printProgress('Found ' + str(len(images_cfg['bgcolour'])) + ' background colours to choose from, selected ' + bgcolour + '!', '')
     return bgcolour
 
-def drawImageBorder(draw, images_cfg, margin, ident, border):
-    draw.line([(ident, margin), (images_cfg['width'] - ident, margin)], fill ="black", width = border)
-    draw.line([(images_cfg['width'] - ident, margin),(images_cfg['width'] - margin, ident)], fill ="black", width = border)
-    draw.line([(images_cfg['width'] - margin, ident), (images_cfg['width'] - margin, images_cfg['height'] - ident)], fill ="black", width = border)
-    draw.line([(images_cfg['width'] - margin, images_cfg['height'] - ident), (images_cfg['width'] - ident, images_cfg['height'] - margin)], fill ="black", width = border)
-    draw.line([(images_cfg['width'] - ident, images_cfg['height'] - margin), (ident, images_cfg['height'] - margin)], fill ="black", width = border)
-    draw.line([(ident, images_cfg['height'] - margin), margin, (images_cfg['height'] - ident)], fill ="black", width = border)
-    draw.line([margin, (images_cfg['height'] - ident), (margin, ident)], fill ="black", width = border)
-    draw.line([(margin, ident), (ident, margin)], fill ="black", width = border)
+# draw a black border just inside the image boundary
+def drawImageBorder(draw, fill_colour, image_height, image_width, margin, ident, border):
+    draw.line([(ident, margin), (image_width - ident, margin)], fill =fill_colour, width = border)
+    draw.line([(image_width - ident, margin),(image_width - margin, ident)], fill =fill_colour, width = border)
+    draw.line([(image_width - margin, ident), (image_width - margin, image_height - ident)], fill =fill_colour, width = border)
+    draw.line([(image_width - margin, image_height - ident), (image_width - ident, image_height - margin)], fill =fill_colour, width = border)
+    draw.line([(image_width - ident, image_height - margin), (ident, image_height - margin)], fill =fill_colour, width = border)
+    draw.line([(ident, image_height - margin), margin, (image_height - ident)], fill =fill_colour, width = border)
+    draw.line([margin, (image_height - ident), (margin, ident)], fill =fill_colour, width = border)
+    draw.line([(margin, ident), (ident, margin)], fill =fill_colour, width = border)
     return
 
-def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
-    font = ImageFont.truetype(fonts_cfg['family'], fonts_cfg['size'])
-    ascent, descent = font.getmetrics()
+def createImage(images_cfg):
+    return Image.new("RGB", (images_cfg['width'], images_cfg['height']), color=selectBackgroundColour(images_cfg))
 
-    # author text dimenions used to position the 'author' at the bottom right of the image
+
+def getAuthorFontandTextWidthHeight(author, font_cfg):
+    font = ImageFont.truetype(font_cfg['family'], font_cfg['size'])
+    ascent, descent = font.getmetrics()
     author_width = font.getmask(author).getbbox()[2]
     author_height = font.getmask(author).getbbox()[3] + descent
+    return (font, author_width, author_height)
+
+def placeQuoteOntoImage(image, image_height, image_width, fonts_cfg, quote, author):
+    # author text details used to position the 'author' text at the bottom right of the image
+    font, author_width, author_height = getAuthorFontandTextWidthHeight(author, fonts_cfg)
 
     # build the image
-    image = Image.new("RGB", (images_cfg['width'], images_cfg['height']), color=selectBackgroundColour(images_cfg))
     draw = ImageDraw.Draw(image)
 
     # place the author
-    draw.text((images_cfg['width'] - fonts_cfg['margin'] - author_width, images_cfg['height'] - fonts_cfg['margin'] - author_height), author, fill=(0, 0, 0), font=font)
+    draw.text((image_width - fonts_cfg['margin'] - author_width, image_height - fonts_cfg['margin'] - author_height), author, fill=fonts_cfg['textcolour'], font=font)
 
-    # repeatedly try to fit the quote onto the image, if the first line is under the top margin reduce the font size and try again
+    # for the quote try to fit the text onto the image using the default font size
+    # if that doesn't fit reduce the size until it does or give up if it gets too small
     fontsize = fonts_cfg['size']
     charlimit = fonts_cfg['char_limit']
 
@@ -161,7 +170,7 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
         font = ImageFont.truetype(fonts_cfg['family'], fontsize)
         y, line_heights = get_y_and_heights(
             quote_lines,
-            (images_cfg['width'], images_cfg['height'] - ((fonts_cfg['margin'] * 2) + author_height)),
+            (image_width, image_height - ((fonts_cfg['margin'] * 2) + author_height)),
             fonts_cfg['margin'],
             font
         )
@@ -169,7 +178,7 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
             break
         fontsize -= 2
         if fontsize < 1:
-            raise GeneralError(RENDER_ERROR, 'Unable to render quote as fontsize is illegal (< 1)!')
+            raise GeneralError(RENDER_ERROR, 'Unable to render quote as fontsize is now < 1!!!')
         charlimit += 4
         printProgress('Quote starts within margin (' + str(fonts_cfg['margin']) + ' / ' + str(y) + '), using smaller font (' + str(fontsize) + ') with character limit (' + str(charlimit) + '), trying again!', '')
 
@@ -177,16 +186,19 @@ def buildQuoteImage(images_cfg, fonts_cfg, quote, author):
     for i, line in enumerate(quote_lines):
         # Calculate the horizontally-centered position at which to draw this line
         line_width = font.getmask(line).getbbox()[2]
-        x = ((images_cfg['width'] - line_width) // 2)
-        # Draw this line
-        draw.text((x, y), line, font=font, fill=(0, 0, 0))
+        x = ((image_width - line_width) // 2)
+        # Draw a line of the quote
+        draw.text((x, y), line, font=font, fill=fonts_cfg['textcolour'])
         # Move on to the height at which the next line should be drawn at
         y += line_heights[i]
 
     # add a fancy border around the edge of the image
-    drawImageBorder(draw, images_cfg, 5, 20, 3)
-    drawImageBorder(draw, images_cfg, 10, 20, 3)
+    drawImageBorder(draw, fonts_cfg['textcolour'], image_height, image_width, 5, 20, 3)
+    drawImageBorder(draw, fonts_cfg['textcolour'], image_height, image_width, 10, 20, 3)
     return image
+
+def writeQuoteOnExistingImage():
+    return
 
 def setAuthAccess(twitter_cfg):
     auth = tweepy.OAuthHandler(
@@ -204,7 +216,7 @@ def uploadImageToTwitter(auth, image):
     media = api.media_upload(image)
     return media
 
-def setClientAcces(twitter_cfg):
+def setClientAccess(twitter_cfg):
     client = tweepy.Client(
         consumer_key = twitter_cfg['consumer_key'],
         consumer_secret = twitter_cfg['consumer_secret'],
@@ -219,24 +231,30 @@ def tweetMessage(client, author, media):
     client.create_tweet(text=tweet, media_ids=[media.media_id])
     return
 
+def getConfigName(script_name):
+    cfg_name = script_name.split('.')
+    return cfg_name[0] + '.yaml'
+
 def main():
     try:
-        printProgress('Starting up', '')
-        with open('tweetquote.yaml', 'r') as ymlfile:
+        printProgress('Starting up script', sys.argv[0])
+        cfg_file = getConfigName(sys.argv[0])
+        printProgress('Looking for config file', cfg_file)
+        with open(cfg_file, 'r') as ymlfile:
             cfg = yaml.full_load(ymlfile)
-
         validateConfiguration(cfg)
         quote = getRandomQuote(cfg['api']['url'], cfg['api']['token'])
         printProgress('Quote retrieved', json.dumps(quote))
-        image = buildQuoteImage(cfg['images'], cfg['font'], quote['author']['quote']['text'], quote['author']['name'])
-        new_image_name = cfg['images']['path'] + '/' + cfg['images']['prefix'] + 'generatedimage'
-        image.save(new_image_name, 'png')
+        generated_image = createImage(cfg['images']['generated'])
+        quoted_image = placeQuoteOntoImage(generated_image, cfg['images']['generated']['height'], cfg['images']['generated']['width'], cfg['font'], quote['author']['quote']['text'], quote['author']['name'])
+        new_image_name = cfg['images']['generated']['path'] + '/' + cfg['images']['generated']['prefix'] + 'generatedimage'
+        quoted_image.save(new_image_name, 'png')
         printProgress('Setting Twitter v1 API Authentication object!', '')
         auth = setAuthAccess(cfg['twitter'])
         printProgress('Using Twitter v1 API to upload image with embedded quote!', new_image_name)
         media = uploadImageToTwitter(auth, new_image_name)
         printProgress('Setting Twitter v2 API Authenication object!', '')
-        client = setClientAcces(cfg['twitter'])
+        client = setClientAccess(cfg['twitter'])
         printProgress('Using Twitter v2 API to tweet words of wisdom!', '')
         tweetMessage(client, quote['author']['name'], media)    
         printProgress('Finishing', '')

@@ -2,6 +2,8 @@
 
 Update Log
 
+    v3.11 - Some code tidy and message text updates, added textcolour as a config option, removed deprecated telnetlib
+    v3.10 - Allow library of images to use as background to quotes, rejig the text colour and border colour handling. Refactor some code. Restructure some of the cfg file.
     v3.04 - Remove redundant function from code
     v3.03 - Small change to logging messages
     v3.02 - Small refactor

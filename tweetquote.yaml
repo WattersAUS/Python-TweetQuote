@@ -2,20 +2,24 @@ api:
     url: <apiUrlGoesHere>
     token: <apiBearerTokenGoesHere>
 images:
-    path: <path to place generated image>
-    prefix: <prefix image name>
-    format: <image output format>
-    height: 512
-    width: 512
-    bgcolour:
-        - black
-        - blue
-        - green
-        - rgb(191,191,191)
-    textcolour: white
+    generated:
+        path: <path to place generated image>
+        prefix: <prefix image name>
+        format: <image output format>
+        height: 512
+        width: 512
+        bgcolour:
+            - white
+            - blue
+            - green
+            - rgb(191,191,191)
+    library:
+        path: <path to search for prebuilt background images>
+        fileext: <prefix to search for>
 font:
     family: <font to use>
     size: <font size>
+    textcolour: black
     char_limit: <how many chars per line>
     margin: <so we can not run up to the borders of the image>
 twitter:
